@@ -1,0 +1,15 @@
+NOTICE - StillWrong third-party and open source dependencies
+
+StillWrong code: MIT License, see LICENSE.
+
+Unity packages declared in Packages/com.stillwrong.reducer/package.json:
+com.unity.nuget.newtonsoft-json 3.2.2 (Newtonsoft.Json, MIT) and com.unity.ugui 2.0.0
+(Unity Companion License). com.unity.inputsystem is used when present.
+
+meta-sam-parser 0.1.0 algorithm provenance: the one_bit mask codec in
+Packages/com.stillwrong.reducer/Runtime/Meta/MaskCodec.cs is a port of the algorithm in
+the official meta-sam-parser 0.1.0 package (custom base85 alphabet with a length prefix,
+canonical re-encoding check, 12-bit spatial-context range decoder). No package source was
+copied. The algorithm is part of the SAM Materials under the SAM License dated
+19 November 2025. The licence text ships in SAM-LICENSE, copied verbatim from the
+0.1.0 wheel on PyPI.

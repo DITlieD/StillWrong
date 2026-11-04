@@ -1,0 +1,24 @@
+{
+    "name": "StillWrong.Reducer.Runtime",
+    "rootNamespace": "StillWrong",
+    "references": [
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.inputsystem",
+            "expression": "1.19.0",
+            "define": "STILLWRONG_INPUTSYSTEM"
+        }
+    ],
+    "noEngineReferences": false
+}
