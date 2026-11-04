@@ -1,6 +1,11 @@
 # StillWrong
 
-StillWrong is a Unity Editor package for the moment you see a bug while playing your own game. You press **I found a bug**, click the thing that looks wrong, write one sentence, and send it. An agent fixes a copy of the scene on its own git branch. You check the copy, and if it looks right you put the fix into your scene.
+StillWrong is a Unity Editor package for the moment you see a bug while playing your own game.
+
+For those tired of describing the full thing they want changed in games to an AI chat, now you can literally just click at it which simplifies the process, it will not stay wrong after you ask for a fix.
+The AI will not guess what it needs to do anymore.
+
+You press **I found a bug**, click the thing that looks wrong, write one sentence, and send it. An agent fixes a copy of the scene on its own git branch. You check the copy, and if it looks right you put the fix into your scene.
 
 It was built for the Meta Global AI Developer Hackathon (Oct to Nov 2026) and uses SAM 3.1 and Muse Spark through the Meta Model API.
 
