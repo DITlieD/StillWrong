@@ -4,6 +4,12 @@
 
 <p align="center">Unity Editor package &nbsp;·&nbsp; SAM 3.1 + Muse Spark &nbsp;·&nbsp; Meta Model API &nbsp;·&nbsp; MIT</p>
 
+## Demo video
+
+<p align="center"><a href="https://youtu.be/UY9kle7WmNs"><img src="https://img.youtube.com/vi/UY9kle7WmNs/maxresdefault.jpg" alt="Watch the StillWrong demo on YouTube" width="100%"></a></p>
+
+<p align="center"><a href="https://youtu.be/UY9kle7WmNs">Watch the 2:29 demo on YouTube</a></p>
+
 # StillWrong
 
 StillWrong is a Unity Editor package for the moment you see a bug while playing your own game.
