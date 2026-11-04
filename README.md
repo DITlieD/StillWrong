@@ -1,17 +1,32 @@
+<p align="center"><img src="docs/banner.png" alt="StillWrong" width="100%"></p>
+
+<p align="center"><b>See a bug while you play. Click it. Say what's wrong. It gets fixed.</b></p>
+
+<p align="center">Unity Editor package &nbsp;·&nbsp; SAM 3.1 + Muse Spark &nbsp;·&nbsp; Meta Model API &nbsp;·&nbsp; MIT</p>
+
 # StillWrong
 
 StillWrong is a Unity Editor package for the moment you see a bug while playing your own game.
 
-For those tired of describing the full thing they want changed in games to an AI chat, now you can literally just click at it which simplifies the process, it will not stay wrong after you ask for a fix.
-The AI will not guess what it needs to do anymore.
+## Why it exists
+
+For those tired of describing the full thing they want changed in a game to an AI chat: now you can just click on it. That makes the process simpler, and the thing will not stay wrong after you ask for a fix. The AI does not have to guess what it needs to do anymore.
+
+Today a visual bug in a game goes like this. You stop playing, try to remember what happened, find the object in a hierarchy of hundreds, and write a long message about it. The AI gets text, not the frame you saw. It guesses which object you mean and often changes the wrong one, so the bug is still wrong.
+
+StillWrong replaces that description with the evidence. The recorder already has the frame. Your click names the exact GameObject. Your sentence says what should change. The agent gets all three and works on a copy, so a wrong guess never touches your scene.
+
+## How it works
 
 You press **I found a bug**, click the thing that looks wrong, write one sentence, and send it. An agent fixes a copy of the scene on its own git branch. You check the copy, and if it looks right you put the fix into your scene.
+
+<p align="center"><img src="docs/loop.png" alt="Play, I found a bug, click it, one sentence, agent fixes a copy, check then apply" width="100%"></p>
 
 It was built for the Meta Global AI Developer Hackathon (Oct to Nov 2026) and uses SAM 3.1 and Muse Spark through the Meta Model API.
 
 ![Recorder running while playing](docs/recorder.jpg)
 
-## The loop
+## The loop in detail
 
 1. **Background recorder.** While you play in the Editor, StillWrong keeps a rolling loop of the last few minutes as 10 second chunks. The default is 3 minutes (setting: 1 to 10). Older chunks are deleted as play goes on. A red dot in the docked Still Wrong tab shows it is recording.
 2. **I found a bug.** One click pauses the game and opens the Review window on the recorded frames. You scrub back to the frame that shows the problem.
