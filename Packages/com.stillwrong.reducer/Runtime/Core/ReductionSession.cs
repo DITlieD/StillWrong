@@ -49,7 +49,8 @@ namespace StillWrong.Core
             pruneRoots = candidatePool
                 .Where(id => nodeDict.TryGetValue(id, out var n) && n.Children.Count > 0)
                 .Where(id => DeltaDebuggingReducer.IsSubtreeEntirelyUnprotected(id, nodeDict, protectedClosure))
-                .OrderByDescending(Score)
+                .OrderBy(Depth)
+                .ThenByDescending(Score)
                 .ToList();
             prunePos = 0;
             granularity = Math.Min(2, candidatePool.Count);
@@ -100,6 +101,11 @@ namespace StillWrong.Core
             if (pendingIsSet)
             {
                 throw new InvalidOperationException("Report must be called for the outstanding trial before NextTrial.");
+            }
+            // A subtree whose root was already removed with a parent cannot change the result, so skip it.
+            while (prunePos < pruneRoots.Count && confirmedRemovals.Contains(pruneRoots[prunePos]))
+            {
+                prunePos++;
             }
             if (prunePos < pruneRoots.Count)
             {
@@ -259,6 +265,19 @@ namespace StillWrong.Core
                 return 1;
             }
             return Math.Min(Math.Max(granularity - 1, 2), candidatePool.Count);
+        }
+
+        // Number of ancestors, so whole branches near the scene root are tried before their children.
+        private int Depth(string id)
+        {
+            int depth = 0;
+            string current = id;
+            while (nodeDict.TryGetValue(current, out var node) && !string.IsNullOrEmpty(node.ParentId) && depth < 1000)
+            {
+                depth++;
+                current = node.ParentId;
+            }
+            return depth;
         }
 
         private double Score(string id)

@@ -66,7 +66,7 @@ This repository is also a small Unity project you can open directly. `Assets/Fix
 
 - Object matching uses screen rects, not exact pixel outlines, so two objects with nearly the same rect can still need a manual pick. The ranking logic has offline tests (`Packages/com.stillwrong.reducer/Tests~/MaskRankerTests`, run with `dotnet run`), but the live SAM refine pass has not yet been re-run on the demo scene since this change.
 - The recorder is not lightweight yet. On our test scene the Editor update averaged 34.5 ms with recording off and 101.6 ms with it on.
-- The Send step reduces the scene by running trials. On a large scene this can take a long time.
+- The Send step reduces the scene by running trials, and each trial reloads the scene copy, which takes a second or two on a large scene. It now tries whole branches from the scene root first and skips branches already removed with a parent. In an offline simulation of a 4,579-object scene where the bug needs only the target, this cut the trial count from 933 to 33 (`Packages/com.stillwrong.reducer/Tests~/ReductionSimTests`). This has not been re-timed on the real Overworld scene yet.
 - A fix made by the agent is a proposal. Check the copy before putting it in your scene.
 - Tested on Linux only.
 
