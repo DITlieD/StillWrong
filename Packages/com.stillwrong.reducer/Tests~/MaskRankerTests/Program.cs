@@ -62,6 +62,24 @@ static class P
         Check(MaskRanker.IsAmbiguous(r6), "merged mask with click on small wasp is ambiguous");
 
 
+
+        // 8. Live case from the real 1920x1080 frame: the big wasp's rect is 182x167 but SAM's head-only
+        //    refine mask is 81x121. The wasp is kept (not background), and the head-only refine is rejected.
+        int FW = 1920, FH = 1080;
+        MaskElement fullGround = E("Terrain/Ground", 0, 0, FW, FH, 0);
+        MaskElement wide = E("Enemies/BigWasp", 520, 708, 182, 167, 1);
+        MaskElement swarm = E("Enemies/SmallWasp", 492, 740, 46, 55, 2);
+        var real = new List<MaskElement> { fullGround, wide, swarm };
+        bool[,] headOnly = Mask(FW, FH, new Rect2D(562, 734, 81, 121));
+        var rHead = MaskRanker.Rank(headOnly, real, new Vec2(608, 818), true);
+        Check(rHead.Count > 0 && rHead[0].Element == wide, "wide sprite with a small mask is kept, ground is dropped");
+        bool[,] firstPass = Mask(FW, FH, new Rect2D(520, 716, 182, 140), new Rect2D(494, 742, 42, 50));
+        var rFirst = MaskRanker.Rank(firstPass, real, new Vec2(608, 818), true);
+        Check(rFirst.Count > 0 && rFirst[0].Element == wide, "first pass on the real frame names the big wasp");
+        Check(!MaskRanker.RefineIsBetter(rFirst, rHead), "refine that cuts the object to one part is rejected");
+        var rTight = MaskRanker.Rank(Mask(FW, FH, new Rect2D(522, 710, 178, 163)), real, new Vec2(608, 818), true);
+        Check(MaskRanker.RefineIsBetter(rFirst, rTight), "refine that fits the object better is kept");
+
         // 7. Snapshot file round trip, nearest lookup and scaling to frame size.
         var snap = new FrameObjectsSnapshot { FrameNumber = 30, ScreenWidth = 800, ScreenHeight = 600, Elements = scene };
         string text = FrameObjects.Format(snap) + FrameObjects.Format(new FrameObjectsSnapshot { FrameNumber = 45, ScreenWidth = 800, ScreenHeight = 600 });

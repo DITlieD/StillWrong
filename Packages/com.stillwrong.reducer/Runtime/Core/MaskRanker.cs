@@ -36,6 +36,7 @@ namespace StillWrong.Core
         public const int MaxCandidates = 10;
         public const double ClickBonus = 0.05;
         public const int BackgroundRatio = 4;
+        public const double BackgroundFrameShare = 0.1;
 
         public static int Area(bool[,] mask)
         {
@@ -145,8 +146,9 @@ namespace StillWrong.Core
                 rank.Iou = (double)inside / (maskArea + rectPixels - inside);
                 rank.ContainsClick = containsClick;
                 rank.Score = rank.Iou + (containsClick ? ClickBonus : 0.0);
-                // An object four times larger than the mask (ground, sky, a full-screen panel) is not what SAM outlined.
-                if (rectPixels > maskArea * BackgroundRatio)
+                // Ground, sky or a full-screen panel: far larger than the mask and a large part of the frame.
+                // A sprite with wide transparent wings can be much larger than its mask, so size alone is not enough.
+                if (rectPixels > maskArea * BackgroundRatio && rectPixels > w * h * BackgroundFrameShare)
                 {
                     continue;
                 }
@@ -266,6 +268,25 @@ namespace StillWrong.Core
             double inter = ix * iy;
             double union = a.Area + b.Area - inter;
             return union > 0.0 ? inter / union : 0.0;
+        }
+
+        // A second mask only replaces the first when it names the same object at least as well,
+        // or names a different object much better. A refine pass that cuts the object down to one part loses.
+        public static bool RefineIsBetter(List<MaskRank> first, List<MaskRank> refined)
+        {
+            if (refined == null || refined.Count == 0)
+            {
+                return false;
+            }
+            if (first == null || first.Count == 0)
+            {
+                return true;
+            }
+            if (refined[0].Element == first[0].Element || refined[0].Element.Path == first[0].Element.Path)
+            {
+                return refined[0].Iou >= first[0].Iou;
+            }
+            return refined[0].Iou >= first[0].Iou + 0.15;
         }
 
         // True when SAM likely merged the top object with something else: the mask spills out of the

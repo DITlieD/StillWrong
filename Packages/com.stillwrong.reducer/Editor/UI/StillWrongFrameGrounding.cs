@@ -83,12 +83,16 @@ namespace StillWrong.Editor.UI
                     string refinedNote;
                     bool[,] refined = StillWrongSamClick.Segment(frame, box, refinePoints, out refinedNote);
                     List<MaskRank> refinedRanks = refined == null ? null : MaskRanker.Rank(refined, elements, click, true);
-                    if (refinedRanks != null && refinedRanks.Count > 0 && (ranks.Count == 0 || refinedRanks[0].Score >= ranks[0].Score))
+                    if (MaskRanker.RefineIsBetter(ranks, refinedRanks))
                     {
                         mask = refined;
                         ranks = refinedRanks;
                         outcome.Refined = true;
                         refineNote = " Asked SAM again without " + negatives.Count.ToString(CultureInfo.InvariantCulture) + " overlapping object(s).";
+                    }
+                    else if (refinedRanks != null)
+                    {
+                        refineNote = " Asked SAM again without the overlapping object; the first mask matched better, kept it.";
                     }
                 }
             }
