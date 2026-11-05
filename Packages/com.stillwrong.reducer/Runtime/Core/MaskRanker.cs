@@ -36,7 +36,7 @@ namespace StillWrong.Core
         public const int MaxCandidates = 10;
         public const double ClickBonus = 0.05;
         public const int BackgroundRatio = 4;
-        public const double BackgroundFrameShare = 0.1;
+        public const double BackgroundFrameShare = 0.3;
 
         public static int Area(bool[,] mask)
         {

@@ -92,6 +92,12 @@ static class P
         int bl, bt, br, bb;
         MaskRanker.RefineBox(rFirst[0], FW, FH, out bl, out bt, out br, out bb);
         Check(bl < 520 && br > 702 && bt < 1080 - 875 && bb > 1080 - 708, "refine box covers the big wasp in top-left frame pixels (" + bl + "," + bt + "," + br + "," + bb + ")");
+        // Close camera on the Overworld: the wasp billboard's bounds rect is 485x562 on a 1920x1080 frame (13%),
+        // its mask about 9000 px. It must stay a candidate.
+        MaskElement closeWasp = E("OverworldEnemies/RouteWasp/WaspBillboard", 570, 515, 486, 562, 0);
+        MaskElement closeGround = E("Terrain/Chunk_0_0", 0, 0, 1920, 1080, 0);
+        var rClose = MaskRanker.Rank(Mask(1920, 1080, new Rect2D(760, 760, 110, 85)), new List<MaskElement> { closeGround, closeWasp }, new Vec2(812, 800), true);
+        Check(rClose.Count > 0 && rClose[0].Element == closeWasp && rClose.TrueForAll(r => r.Element != closeGround), "close-up sprite kept, full-frame ground dropped");
         var rTight = MaskRanker.Rank(Mask(FW, FH, new Rect2D(522, 710, 178, 163)), real, new Vec2(608, 818), true);
         Check(MaskRanker.RefineIsBetter(rFirst, rTight), "refine that fits the object better is kept");
 
