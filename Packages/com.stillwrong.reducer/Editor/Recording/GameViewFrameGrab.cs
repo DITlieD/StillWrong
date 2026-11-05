@@ -12,6 +12,7 @@ namespace StillWrong.Editor
         static GameViewFrameGrab()
         {
             RollingCaptureRecorder.EditorFrameGrab = Grab;
+            RollingCaptureRecorder.EditorFrameGrabReusesTexture = true;
             EditorApplication.playModeStateChanged += OnPlayMode;
         }
 
@@ -70,6 +71,8 @@ namespace StillWrong.Editor
             }
         }
 
+        static Texture2D _grab;
+
         static Texture2D Grab()
         {
             return ReadGameViewTarget();
@@ -89,13 +92,21 @@ namespace StillWrong.Editor
                 {
                     return null;
                 }
-                Texture2D tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+                // One texture reused for every grab. ReadPixels fills its CPU copy; no GPU upload is needed
+                // because the recorder only reads the pixels back.
+                if (_grab == null || _grab.width != rt.width || _grab.height != rt.height)
+                {
+                    if (_grab != null)
+                    {
+                        UnityEngine.Object.DestroyImmediate(_grab);
+                    }
+                    _grab = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+                }
                 RenderTexture previous = RenderTexture.active;
                 RenderTexture.active = rt;
-                tex.ReadPixels(new Rect(0f, 0f, rt.width, rt.height), 0, 0);
-                tex.Apply();
+                _grab.ReadPixels(new Rect(0f, 0f, rt.width, rt.height), 0, 0, false);
                 RenderTexture.active = previous;
-                return tex;
+                return _grab;
             }
             catch
             {

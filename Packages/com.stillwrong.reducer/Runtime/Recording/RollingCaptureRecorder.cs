@@ -57,10 +57,12 @@ namespace StillWrong.Recording
         public static int TimelineHeight = 1080;
         public const int JpegQuality = 90;
         public static System.Func<Texture2D> EditorFrameGrab;
+        // True when EditorFrameGrab hands back the same texture every call, so the recorder must not destroy it.
+        public static bool EditorFrameGrabReusesTexture;
         public const double FramesPerSecond = 30.0;
         public const double ChunkSeconds = 10.0;
         public const double RetentionTickSeconds = 5.0;
-        public const int ObjectSnapshotEvery = 5;
+        public const int ObjectSnapshotEvery = 10;
         public string SessionId = string.Empty;
         private bool _capturing;
         private bool _frozen;
@@ -94,6 +96,8 @@ namespace StillWrong.Recording
         private string _lastRefusal = string.Empty;
         private string _refusalReason = string.Empty;
         private long _bytesWritten;
+        private FrameEncodeWorker _worker;
+        private long _workerBytesAtChunkStart;
         private sealed class RollingFramePending
         {
             public int FrameIndex;
@@ -202,6 +206,7 @@ namespace StillWrong.Recording
         public void FreezeCapture()
         {
             _frozen = true;
+            FlushFrames();
             WriteStatus();
         }
         public void UnfreezeCapture()
@@ -223,11 +228,17 @@ namespace StillWrong.Recording
         {
             try
             {
+                FlushFrames();
                 CloseChunk();
                 _capturing = false;
             }
             catch
             {
+            }
+            if (_worker != null)
+            {
+                _worker.Dispose();
+                _worker = null;
             }
             WriteStatus();
             ReleaseCaptureTarget(ref _captureFull);
@@ -305,6 +316,7 @@ namespace StillWrong.Recording
                 _chunkDropped++;
                 return;
             }
+            System.Diagnostics.Stopwatch captureClock = System.Diagnostics.Stopwatch.StartNew();
             Texture2D shot = GrabPresentedFrame();
             if (shot == null)
             {
@@ -321,16 +333,18 @@ namespace StillWrong.Recording
             pending.PointerX = pointer.x;
             pending.PointerY = pointer.y;
             pending.ButtonMask = CurrentButtonMask();
-            System.Diagnostics.Stopwatch captureClock = System.Diagnostics.Stopwatch.StartNew();
-            captureClock.Stop();
-            pending.CaptureMs = captureClock.Elapsed.TotalMilliseconds;
-            _captureMsTotal += pending.CaptureMs;
             if (pending.FrameNumber % ObjectSnapshotEvery == 0)
             {
                 _bytesWritten += FrameObjectsCapture.Write(ChunkDir(pending.ChunkIndex), pending.FrameNumber);
             }
             StorePresentedFrame(shot, pending);
-            Destroy(shot);
+            if (EditorFrameGrab == null || !EditorFrameGrabReusesTexture)
+            {
+                Destroy(shot);
+            }
+            captureClock.Stop();
+            pending.CaptureMs = captureClock.Elapsed.TotalMilliseconds;
+            _captureMsTotal += pending.CaptureMs;
         }
         private Texture2D GrabPresentedFrame()
         {
@@ -364,16 +378,13 @@ namespace StillWrong.Recording
             }
             TimelineWidth = shot.width;
             TimelineHeight = shot.height;
-            byte[] jpeg = null;
-            try
+            if (_worker == null)
             {
-                jpeg = ImageConversion.EncodeToJPG(shot, JpegQuality);
+                _worker = new FrameEncodeWorker();
+                _workerBytesAtChunkStart = 0;
             }
-            catch
-            {
-                jpeg = null;
-            }
-            if (jpeg == null || jpeg.Length == 0)
+            string file = Path.Combine(ChunkDir(pending.ChunkIndex), "frames", "f-" + pending.FrameNumber.ToString("D6") + ".jpg");
+            if (!_worker.TryQueue(shot, JpegQuality, file))
             {
                 _droppedFrames++;
                 _chunkDropped++;
@@ -389,17 +400,13 @@ namespace StillWrong.Recording
             rec.ButtonMask = pending.ButtonMask;
             rec.ClockSeconds = pending.ClockSeconds;
             _chunkInputs.Add(rec);
-            try
+        }
+        // Waits for queued frames to reach disk, so the review window sees every captured frame.
+        public void FlushFrames()
+        {
+            if (_worker != null)
             {
-                string dir = ChunkDir(pending.ChunkIndex);
-                string file = Path.Combine(dir, "frames", "f-" + pending.FrameNumber.ToString("D6") + ".jpg");
-                Directory.CreateDirectory(Path.GetDirectoryName(file));
-                File.WriteAllBytes(file, jpeg);
-                _chunkBytes += jpeg.Length;
-                _bytesWritten += jpeg.Length;
-            }
-            catch
-            {
+                _worker.Flush(3000);
             }
         }
         private static Vector2 CurrentPointer()
@@ -581,7 +588,9 @@ namespace StillWrong.Recording
                 manifest.EndTimeSeconds = _clock;
                 manifest.Frames = _chunkFrames;
                 manifest.Dropped = _chunkDropped;
-                manifest.Bytes = _chunkBytes;
+                long workerBytes = _worker != null ? _worker.BytesWritten : 0;
+                manifest.Bytes = _chunkBytes + workerBytes - _workerBytesAtChunkStart;
+                _workerBytesAtChunkStart = workerBytes;
                 string manifestJson = JsonUtility.ToJson(manifest, true);
                 File.WriteAllText(Path.Combine(dir, "manifest.json"), manifestJson);
                 _bytesWritten += manifestJson.Length;
@@ -830,7 +839,7 @@ namespace StillWrong.Recording
                 status.DroppedFrames = _droppedFrames;
                 status.CapturedFrames = (int)_capturedFrames;
                 status.CaptureMsTotal = _captureMsTotal;
-                status.EncodeMsTotal = _encodeMsTotal;
+                status.EncodeMsTotal = _encodeMsTotal + (_worker != null ? _worker.EncodeMsTotal : 0.0);
                 status.FrameMsTotal = _frameMsTotal;
                 status.FramesTimed = _framesTimed;
                 status.ChunksDeleted = _chunksDeleted;
