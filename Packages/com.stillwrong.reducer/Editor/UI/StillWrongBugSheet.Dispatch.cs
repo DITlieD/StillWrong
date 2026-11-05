@@ -13,8 +13,16 @@ namespace StillWrong.Editor.UI
     // Sending the picked bug to the agent.
     public sealed partial class StillWrongBugSheet
     {
+        // One Send at a time. A second click while one runs would reduce the reduced copy.
+        [NonSerialized]
+        private bool _dispatchBusy;
         private void DispatchBugNow()
         {
+            if (_dispatchBusy)
+            {
+                return;
+            }
+            _dispatchBusy = true;
             _checkLine = string.Empty;
             string chunk;
             string file;
@@ -39,6 +47,7 @@ namespace StillWrong.Editor.UI
                     failure = "failed: " + ex.GetType().Name + ": " + ex.Message;
                     progress = string.Empty;
                 }
+                _dispatchBusy = false;
                 if (!string.IsNullOrEmpty(failure))
                 {
                     _progressLine = failure;

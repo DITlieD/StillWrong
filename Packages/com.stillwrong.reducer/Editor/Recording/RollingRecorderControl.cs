@@ -374,6 +374,7 @@ namespace StillWrong.Editor.Recording
                 return "failed: reduction-failed: " + ex.GetType().Name + " " + ex.Message;
             }
             WriteDispatchProgress(progressFile, "reduced kept=" + kept.Count + " removed=" + removed.Count + " scene=" + reducedScenePath);
+            RememberSourceScene(reducedScenePath, scenePath);
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string bundleDir = Path.Combine(projectRoot, "Library", "StillWrong", "dispatch-bundle", stamp);
             string manifestPath = string.Empty;
@@ -733,6 +734,22 @@ namespace StillWrong.Editor.Recording
             note = candidatePath + " is spawned at runtime; using " + path + " from the saved scene";
             return path;
         }
+        // The reduced copy is left open after a Send. Remember which scene it came from, so a
+        // second Send from the copy goes back to that scene instead of guessing by object name.
+        private static string SourceSceneKey(string derivedPath)
+        {
+            return "StillWrong.SourceScene." + (derivedPath ?? string.Empty).Replace('\\', '/');
+        }
+        private static void RememberSourceScene(string reducedScenePath, string sourceScenePath)
+        {
+            if (string.IsNullOrEmpty(reducedScenePath) || string.IsNullOrEmpty(sourceScenePath))
+            {
+                return;
+            }
+            EditorPrefs.SetString(SourceSceneKey(reducedScenePath), sourceScenePath);
+            string baseline = reducedScenePath.Replace("_Reduced.unity", "_Baseline.unity");
+            EditorPrefs.SetString(SourceSceneKey(baseline), sourceScenePath);
+        }
         private static string FindSourceScene(string candidatePath, out string scenePath)
         {
             string failure = StillWrong.Dispatch.DispatchService.FindSceneForPath(candidatePath, out scenePath);
@@ -742,6 +759,12 @@ namespace StillWrong.Editor.Recording
             }
             if (!IsDerivedScene(scenePath))
             {
+                return string.Empty;
+            }
+            string remembered = EditorPrefs.GetString(SourceSceneKey(scenePath), string.Empty);
+            if (!string.IsNullOrEmpty(remembered) && File.Exists(Path.Combine(Directory.GetParent(Application.dataPath).FullName, remembered)))
+            {
+                scenePath = remembered;
                 return string.Empty;
             }
             string source = FindOriginalScene(scenePath, candidatePath);

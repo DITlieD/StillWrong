@@ -100,7 +100,9 @@ namespace StillWrong.Dispatch
             string created = TryCreateBranch(branch);
             if (!string.IsNullOrEmpty(created))
             {
+                // Without a git repo there is no branch to hand over, but the packet file is written.
                 receipt.Reason = created;
+                receipt.Saved = created.StartsWith("no-git-repo", StringComparison.Ordinal);
                 return receipt;
             }
             if (!BranchExists(branch))

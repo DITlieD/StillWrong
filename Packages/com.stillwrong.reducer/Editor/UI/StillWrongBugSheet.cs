@@ -1378,12 +1378,15 @@ namespace StillWrong.Editor.UI
         }
         private void DrawPrimary()
         {
-            if (GUILayout.Button("Send this bug to be fixed", GUILayout.Height(28)))
+            using (new EditorGUI.DisabledScope(_dispatchBusy))
             {
-                ConfirmCurrent();
-                _progressLine = "Running verified dispatch.";
-                Repaint();
-                DispatchBugNow();
+                if (GUILayout.Button(_dispatchBusy ? "Sending..." : "Send this bug to be fixed", GUILayout.Height(28)))
+                {
+                    ConfirmCurrent();
+                    _progressLine = "Running verified dispatch.";
+                    Repaint();
+                    DispatchBugNow();
+                }
             }
             EditorGUILayout.LabelField("Sends a copy of this scene to the agent. This scene stays as it is.", EditorStyles.wordWrappedLabel);
             if (!string.IsNullOrEmpty(_progressLine))
