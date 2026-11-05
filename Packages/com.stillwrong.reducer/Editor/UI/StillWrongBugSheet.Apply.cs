@@ -60,9 +60,12 @@ namespace StillWrong.Editor.UI
                 return;
             }
             string updated;
-            if (!TryApplyObject(sourceText, destText, target, out updated))
+            bool applied = string.IsNullOrEmpty(packet.TargetBlocks)
+                ? TryApplyObject(sourceText, destText, target, out updated)
+                : TryApplyAgentEdits(packet.TargetBlocks, sourceText, destText, target, out updated);
+            if (!applied)
             {
-                _checkLine = "The component set does not match. Your scene was not changed.";
+                _checkLine = "The change does not fit your scene. Your scene was not changed.";
                 return;
             }
             string stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
@@ -181,12 +184,22 @@ namespace StillWrong.Editor.UI
             {
                 return false;
             }
+            string[] rows = SplitScene(text);
             List<string> parts = new List<string>();
+            string goId;
+            int goStart;
+            int goEnd;
+            if (!TryGameObjectFileId(text, targetName, out goId) || !TryDocSpan(rows, goId, out goStart, out goEnd))
+            {
+                return false;
+            }
+            string[] goSlice = new string[goEnd - goStart];
+            Array.Copy(rows, goStart, goSlice, 0, goSlice.Length);
+            parts.Add(BlockBody(goSlice));
             for (int i = 0; i < blocks.Count; i++)
             {
                 parts.Add(BlockBody(blocks[i]));
             }
-            string[] rows = SplitScene(text);
             List<string> matIds = EmbeddedMaterialIds(rows, blocks);
             for (int i = 0; i < matIds.Count; i++)
             {
@@ -205,6 +218,151 @@ namespace StillWrong.Editor.UI
             }
             canon = string.Join("\n--block--\n", parts);
             return canon.Length > 0;
+        }
+        private static bool TryApplyAgentEdits(string baseBlocks, string sourceText, string destText, string targetName, out string updated)
+        {
+            updated = destText;
+            string sourceBlocks;
+            if (!TryCanonicalBlocks(sourceText, targetName, out sourceBlocks))
+            {
+                return false;
+            }
+            List<string[]> baseParts = SplitCanonicalBlocks(baseBlocks);
+            List<string[]> sourceParts = SplitCanonicalBlocks(sourceBlocks);
+            if (baseParts.Count != sourceParts.Count || baseParts.Count == 0)
+            {
+                return false;
+            }
+            string destId;
+            if (!TryGameObjectFileId(destText, targetName, out destId))
+            {
+                return false;
+            }
+            string[] destRows = SplitScene(destText);
+            List<string> docIds = new List<string>();
+            docIds.Add(destId);
+            docIds.AddRange(ComponentIds(destRows, destId));
+            int changed = 0;
+            for (int i = 0; i < baseParts.Count; i++)
+            {
+                string[] before = baseParts[i];
+                string[] after = sourceParts[i];
+                if (before.Length != after.Length || before.Length == 0 || before[0] != after[0])
+                {
+                    return false;
+                }
+                bool differs = false;
+                for (int j = 0; j < before.Length; j++)
+                {
+                    if (before[j] != after[j])
+                    {
+                        differs = true;
+                        break;
+                    }
+                }
+                if (!differs)
+                {
+                    continue;
+                }
+                int start;
+                int end;
+                if (!TryTypedDocSpan(destRows, docIds, before[0].Trim(), out start, out end))
+                {
+                    return false;
+                }
+                for (int j = 1; j < before.Length; j++)
+                {
+                    if (before[j] == after[j])
+                    {
+                        continue;
+                    }
+                    string key = LineKey(before[j]);
+                    if (string.IsNullOrEmpty(key) || key != LineKey(after[j]))
+                    {
+                        return false;
+                    }
+                    int hit = -1;
+                    for (int r = start; r < end; r++)
+                    {
+                        if (LineKey(destRows[r]) != key)
+                        {
+                            continue;
+                        }
+                        if (hit >= 0)
+                        {
+                            return false;
+                        }
+                        hit = r;
+                    }
+                    if (hit < 0)
+                    {
+                        return false;
+                    }
+                    destRows[hit] = after[j];
+                    changed++;
+                }
+            }
+            if (changed == 0)
+            {
+                return false;
+            }
+            updated = JoinScene(destText, destRows);
+            return true;
+        }
+        private static bool TryTypedDocSpan(string[] rows, List<string> docIds, string typeLine, out int start, out int end)
+        {
+            start = -1;
+            end = -1;
+            int found = 0;
+            for (int i = 0; i < docIds.Count; i++)
+            {
+                int s;
+                int e;
+                if (!TryDocSpan(rows, docIds[i], out s, out e))
+                {
+                    continue;
+                }
+                bool match = false;
+                for (int r = s; r < e; r++)
+                {
+                    string trimmed = rows[r].Trim();
+                    if (trimmed.StartsWith("--- ") || trimmed.Length == 0)
+                    {
+                        continue;
+                    }
+                    match = trimmed == typeLine;
+                    break;
+                }
+                if (match)
+                {
+                    start = s;
+                    end = e;
+                    found++;
+                }
+            }
+            return found == 1;
+        }
+        private static List<string[]> SplitCanonicalBlocks(string blocks)
+        {
+            List<string[]> parts = new List<string[]>();
+            List<string> current = new List<string>();
+            foreach (string row in SplitScene(blocks))
+            {
+                if (row.Trim() == "--block--")
+                {
+                    parts.Add(current.ToArray());
+                    current = new List<string>();
+                    continue;
+                }
+                current.Add(row);
+            }
+            parts.Add(current.ToArray());
+            return parts;
+        }
+        private static string LineKey(string row)
+        {
+            int colon = row.IndexOf(':');
+            return colon < 0 ? string.Empty : row.Substring(0, colon + 1);
         }
         private static List<string> EmbeddedMaterialIds(string[] rows, List<string[]> blocks)
         {

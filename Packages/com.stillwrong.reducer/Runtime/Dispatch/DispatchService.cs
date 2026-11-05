@@ -50,6 +50,23 @@ namespace StillWrong.Dispatch
     }
     public static class DispatchService
     {
+        // Set from Settings > "Worktree folder". Empty means a stillwrong-worktrees folder next to the project.
+        public static string WorktreeOverride = string.Empty;
+
+        public static string WorktreeParent()
+        {
+            if (!string.IsNullOrEmpty(WorktreeOverride))
+            {
+                return WorktreeOverride;
+            }
+            string fromEnv = Environment.GetEnvironmentVariable("STILLWRONG_WORKTREES");
+            if (!string.IsNullOrEmpty(fromEnv))
+            {
+                return fromEnv;
+            }
+            return Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Path.Combine(Application.dataPath, ".."))), "stillwrong-worktrees");
+        }
+
         public static string PacketRoot()
         {
             return Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Library", "StillWrong", "dispatch");
@@ -115,7 +132,7 @@ namespace StillWrong.Dispatch
                 {
                     stamp = stamp.Substring("packet-".Length);
                 }
-                string parent = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Path.Combine(Application.dataPath, ".."))), "stillwrong-worktrees");
+                string parent = WorktreeParent();
                 Directory.CreateDirectory(parent);
                 string worktree = Path.Combine(parent, stamp);
                 if (Directory.Exists(worktree))

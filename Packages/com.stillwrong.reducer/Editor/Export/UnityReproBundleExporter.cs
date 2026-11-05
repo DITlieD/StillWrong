@@ -664,6 +664,86 @@ namespace StillWrong.Editor.Export
                 }
                 CopySingleFile(fullDep, BundleAssetsPath(bundleOutputDirectory, root, fullDep));
             }
+            CopyReferencedAsmdefDirs(copiedAsmdefDirs, root, bundleOutputDirectory);
+            CopyCompileSources(root, bundleOutputDirectory);
+        }
+
+        private static readonly string[] CompileSourceExtensions = { ".cs", ".asmdef", ".asmref", ".dll", ".rsp" };
+
+        public static void CopyCompileSources(string root, string bundleOutputDirectory)
+        {
+            string assets = Path.Combine(root, "Assets");
+            foreach (string file in Directory.GetFiles(assets, "*", SearchOption.AllDirectories))
+            {
+                string extension = Path.GetExtension(file);
+                if (Array.IndexOf(CompileSourceExtensions, extension.ToLowerInvariant()) < 0)
+                {
+                    continue;
+                }
+                CopySingleFile(file, BundleAssetsPath(bundleOutputDirectory, root, file));
+            }
+        }
+
+        [Serializable]
+        private sealed class AsmdefReferences
+        {
+            public string name = string.Empty;
+            public string[] references = new string[0];
+        }
+
+        private static void CopyReferencedAsmdefDirs(HashSet<string> copiedAsmdefDirs, string root, string bundleOutputDirectory)
+        {
+            Dictionary<string, string> dirByName = new Dictionary<string, string>(StringComparer.Ordinal);
+            Dictionary<string, AsmdefReferences> parsedByDir = new Dictionary<string, AsmdefReferences>(StringComparer.OrdinalIgnoreCase);
+            foreach (string asmdef in Directory.GetFiles(Path.Combine(root, "Assets"), "*.asmdef", SearchOption.AllDirectories))
+            {
+                AsmdefReferences parsed = JsonUtility.FromJson<AsmdefReferences>(File.ReadAllText(asmdef));
+                string dir = Path.GetDirectoryName(Path.GetFullPath(asmdef));
+                parsedByDir[dir] = parsed;
+                if (parsed != null && !string.IsNullOrEmpty(parsed.name) && !dirByName.ContainsKey(parsed.name))
+                {
+                    dirByName.Add(parsed.name, dir);
+                }
+            }
+            Queue<string> pending = new Queue<string>(copiedAsmdefDirs);
+            while (pending.Count > 0)
+            {
+                AsmdefReferences parsed;
+                if (!parsedByDir.TryGetValue(Path.GetFullPath(pending.Dequeue()), out parsed) || parsed == null || parsed.references == null)
+                {
+                    continue;
+                }
+                for (int i = 0; i < parsed.references.Length; i++)
+                {
+                    string dir = ResolveAsmdefReference(parsed.references[i], dirByName, root);
+                    if (string.IsNullOrEmpty(dir) || copiedAsmdefDirs.Contains(dir))
+                    {
+                        continue;
+                    }
+                    copiedAsmdefDirs.Add(dir);
+                    CopyDirectory(dir, BundleAssetsPath(bundleOutputDirectory, root, dir));
+                    pending.Enqueue(dir);
+                }
+            }
+        }
+
+        private static string ResolveAsmdefReference(string reference, Dictionary<string, string> dirByName, string root)
+        {
+            if (string.IsNullOrEmpty(reference))
+            {
+                return string.Empty;
+            }
+            if (reference.StartsWith("GUID:", StringComparison.OrdinalIgnoreCase))
+            {
+                string assetPath = AssetDatabase.GUIDToAssetPath(reference.Substring(5));
+                if (string.IsNullOrEmpty(assetPath) || !assetPath.StartsWith("Assets/", StringComparison.Ordinal))
+                {
+                    return string.Empty;
+                }
+                return Path.GetDirectoryName(Path.GetFullPath(Path.Combine(root, assetPath)));
+            }
+            string dir;
+            return dirByName.TryGetValue(reference, out dir) ? dir : string.Empty;
         }
 
         private static string CopyStillWrongRuntime(string bundleOutputDirectory)
@@ -800,6 +880,15 @@ namespace StillWrong.Editor.Export
                 string destDir = Path.Combine(bundleOutputDirectory, "Packages");
                 Directory.CreateDirectory(destDir);
                 File.Copy(source, Path.Combine(destDir, "manifest.json"), true);
+                string packagesDir = Path.Combine(ProjectRoot(), "Packages");
+                string[] embedded = Directory.GetDirectories(packagesDir);
+                for (int i = 0; i < embedded.Length; i++)
+                {
+                    if (File.Exists(Path.Combine(embedded[i], "package.json")))
+                    {
+                        CopyDirectory(embedded[i], Path.Combine(destDir, Path.GetFileName(embedded[i])));
+                    }
+                }
             }
             catch
             {

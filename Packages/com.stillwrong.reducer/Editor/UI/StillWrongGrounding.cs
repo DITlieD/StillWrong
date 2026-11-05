@@ -80,6 +80,37 @@ namespace StillWrong.Editor.UI
         }
     }
 
+    public static class StillWrongGroundingRanking
+    {
+        public static double Score(StillWrongGroundingCandidate candidate, bool usedSamMask)
+        {
+            if (candidate == null)
+            {
+                return 0.0;
+            }
+            return usedSamMask ? candidate.ElementCoverage : candidate.MaskCoverage;
+        }
+
+        public static int Compare(StillWrongGroundingCandidate a, StillWrongGroundingCandidate b)
+        {
+            int byElement = Score(b, true).CompareTo(Score(a, true));
+            if (byElement != 0)
+            {
+                return byElement;
+            }
+            return Score(b, false).CompareTo(Score(a, false));
+        }
+
+        public static bool IsAmbiguous(List<StillWrongGroundingCandidate> candidates)
+        {
+            if (candidates == null || candidates.Count < 2)
+            {
+                return false;
+            }
+            return Math.Abs(candidates[0].ElementCoverage - candidates[1].ElementCoverage) <= SamCoverage.AmbiguityBand;
+        }
+    }
+
     public sealed class StillWrongDegradedGroundingService : IStillWrongGroundingService
     {
         public StillWrongGroundingResult Ground(StillWrongGroundingRequest request)
@@ -109,17 +140,8 @@ namespace StillWrong.Editor.UI
                 GroundWithBox(request, elements, result);
                 return;
             }
-            Dictionary<string, int> pathToId = new Dictionary<string, int>(StringComparer.Ordinal);
-            for (int i = 0; i < elements.Count; i++)
-            {
-                int id = 0;
-                if (StillWrongIdBuffer.TryGetIdForPath(elements[i].HierarchyPath, out id) && id != 0 && !pathToId.ContainsKey(elements[i].HierarchyPath))
-                {
-                    pathToId.Add(elements[i].HierarchyPath, id);
-                }
-            }
             Dictionary<int, string> idToPath = new Dictionary<int, string>();
-            foreach (KeyValuePair<string, int> kv in pathToId)
+            foreach (KeyValuePair<string, int> kv in StillWrongIdBuffer.RegistryMap)
             {
                 if (!idToPath.ContainsKey(kv.Value))
                 {
@@ -144,7 +166,7 @@ namespace StillWrong.Editor.UI
             for (int i = 0; i < coverage.Count; i++)
             {
                 SamCoverageResult entry = coverage[i];
-                if (entry.ElementId == 0)
+                if (entry.ElementId == 0 || entry.PixelsInScope == 0)
                 {
                     continue;
                 }
@@ -158,7 +180,8 @@ namespace StillWrong.Editor.UI
                 candidate.Warning = entry.Warning;
                 result.Candidates.Add(candidate);
             }
-            result.IsAmbiguous = SamCoverage.IsAmbiguous(coverage);
+            result.Candidates.Sort(StillWrongGroundingRanking.Compare);
+            result.IsAmbiguous = StillWrongGroundingRanking.IsAmbiguous(result.Candidates);
         }
 
         private void GroundWithBox(StillWrongGroundingRequest request, List<SpatialHitElement> elements, StillWrongGroundingResult result)

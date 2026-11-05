@@ -595,7 +595,7 @@ namespace StillWrong.Editor.Recording
             {
                 return stored;
             }
-            string parent = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Path.Combine(Application.dataPath, ".."))), "stillwrong-worktrees");
+            string parent = StillWrong.Dispatch.DispatchService.WorktreeParent();
             if (!Directory.Exists(parent))
             {
                 return string.Empty;

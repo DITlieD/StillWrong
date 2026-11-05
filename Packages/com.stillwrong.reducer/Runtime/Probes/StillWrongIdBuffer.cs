@@ -333,6 +333,11 @@ namespace StillWrong.Oracle
             _lastPathToId = pathToId != null ? pathToId : new Dictionary<string, int>(StringComparer.Ordinal);
         }
 
+        public static IReadOnlyDictionary<string, int> RegistryMap
+        {
+            get { return _lastPathToId; }
+        }
+
         public static bool TryGetIdForPath(string path, out int id)
         {
             id = 0;

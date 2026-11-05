@@ -377,7 +377,14 @@ namespace StillWrong.Editor.UI
                 return;
             }
             List<StillWrongGroundingCandidate> ranked = new List<StillWrongGroundingCandidate>(result.Candidates);
-            ranked.Sort(CompareCoverage);
+            if (result.UsedSamMask)
+            {
+                ranked.Sort(StillWrongGroundingRanking.Compare);
+            }
+            else
+            {
+                ranked.Sort(CompareCoverage);
+            }
             for (int i = 0; i < ranked.Count; i++)
             {
                 StillWrongGroundingCandidate candidate = ranked[i];
@@ -397,8 +404,16 @@ namespace StillWrong.Editor.UI
                 json.Append(", ");
                 Quote(json, "coverage");
                 json.Append(": ");
-                double coverage = candidate == null ? 0d : candidate.MaskCoverage;
+                double coverage = StillWrongGroundingRanking.Score(candidate, result.UsedSamMask);
                 json.Append(coverage.ToString("0.######", CultureInfo.InvariantCulture));
+                json.Append(", ");
+                Quote(json, "maskCoverage");
+                json.Append(": ");
+                json.Append((candidate == null ? 0d : candidate.MaskCoverage).ToString("0.######", CultureInfo.InvariantCulture));
+                json.Append(", ");
+                Quote(json, "elementCoverage");
+                json.Append(": ");
+                json.Append((candidate == null ? 0d : candidate.ElementCoverage).ToString("0.######", CultureInfo.InvariantCulture));
                 json.Append((char)125);
             }
             json.Append((char)10);

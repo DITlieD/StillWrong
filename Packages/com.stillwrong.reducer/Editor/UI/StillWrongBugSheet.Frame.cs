@@ -301,7 +301,9 @@ namespace StillWrong.Editor.UI
                 StillWrongSamClick.WriteReport(tex, outcome.AsResult(), outcome.ClickOnly);
                 return;
             }
+            string idNote = StillWrongFlatIdRender.Capture(Camera.main, tex.width, tex.height);
             StillWrongSamClick.Attach(request, tex, hasBox, x1, y1, x2, y2, pointNegative);
+            StillWrongSamClick.LastNote = StillWrongSamClick.LastNote + " " + idNote;
             bool[,] mask = request.SamMask;
             request.SamMask = null;
             StillWrongGroundingResult without = StillWrongGrounding.ActiveService.Ground(request);
@@ -312,7 +314,7 @@ namespace StillWrong.Editor.UI
             SetMaskOverlay(mask, framePath);
             if (result != null && result.UsedSamMask && result.Candidates != null)
             {
-                result.Candidates.Sort(CompareCandidateCoverage);
+                result.Candidates.Sort(StillWrongGroundingRanking.Compare);
             }
             if (result != null && result.Candidates != null && result.Candidates.Count > 0)
             {

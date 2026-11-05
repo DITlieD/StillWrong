@@ -12,6 +12,7 @@ namespace StillWrong.Editor.UI
         public const string BranchPrefixKey = "StillWrong.BranchPrefix";
         public const string AgentCommandKey = "StillWrong.AgentCommand";
         public const string HiddenOverlaysKey = "StillWrong.HiddenOverlays";
+        public const string WorktreeRootKey = "StillWrong.WorktreeRoot";
         public const string FreezeShortcutId = "StillWrong/Freeze Capture";
         public const string PointShortcutId = "StillWrong/Arm Point Click";
         public static int RetentionMinutes()
@@ -81,6 +82,22 @@ namespace StillWrong.Editor.UI
                 return string.Empty;
             }
         }
+        public static string WorktreeRoot()
+        {
+            try
+            {
+                return EditorPrefs.GetString(WorktreeRootKey, string.Empty);
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+        [InitializeOnLoadMethod]
+        private static void ApplyWorktreeRoot()
+        {
+            StillWrong.Dispatch.DispatchService.WorktreeOverride = WorktreeRoot();
+        }
         [MenuItem("Tools/Still Wrong/Settings")]
         public static void ShowWindow()
         {
@@ -136,6 +153,15 @@ namespace StillWrong.Editor.UI
             try
             {
                 EditorPrefs.SetString(HiddenOverlaysKey, hidden);
+            }
+            catch
+            {
+            }
+            string worktrees = EditorGUILayout.TextField("Worktree folder", WorktreeRoot());
+            try
+            {
+                EditorPrefs.SetString(WorktreeRootKey, worktrees);
+                StillWrong.Dispatch.DispatchService.WorktreeOverride = worktrees;
             }
             catch
             {

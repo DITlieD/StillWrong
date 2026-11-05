@@ -108,7 +108,7 @@ namespace StillWrong.Core
             IEnumerable<string>? explicitlyProtectedIds = null,
             IReadOnlyDictionary<string, double>? priorityScores = null)
         {
-            AllNodes = allNodes?.ToList() ?? new List<ReductionNode>();
+            AllNodes = allNodes?.GroupBy(n => n.Id, StringComparer.Ordinal).Select(g => g.First()).ToList() ?? new List<ReductionNode>();
             TargetNodeId = targetNodeId ?? string.Empty;
             CameraNodeId = cameraNodeId ?? string.Empty;
             EventSystemNodeId = eventSystemNodeId ?? string.Empty;
