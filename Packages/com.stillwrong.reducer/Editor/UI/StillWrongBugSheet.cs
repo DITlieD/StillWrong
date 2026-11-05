@@ -17,6 +17,11 @@ namespace StillWrong.Editor.UI
         [SerializeField]
         private string _sentence = string.Empty;
         private string _groundNote = string.Empty;
+        [NonSerialized]
+        private bool[,] _maskOverlay;
+        [NonSerialized]
+        private Texture2D _maskOverlayTex;
+        private string _maskOverlayPath = string.Empty;
         private float _scrub;
         private int _selectedFrame = 2;
         private Vector2 _scrollPos;
@@ -1275,6 +1280,22 @@ namespace StillWrong.Editor.UI
         }
         private void FinishGround(StillWrongGroundingRequest request, Texture2D tex, bool hasBox, float x1, float y1, float x2, float y2, bool pointNegative)
         {
+            string framePath = (_thumbFiles != null && _selectedThumb >= 0 && _selectedThumb < _thumbFiles.Count) ? _thumbFiles[_selectedThumb] : string.Empty;
+            StillWrong.Core.FrameObjectsSnapshot snapshot = StillWrong.Core.FrameObjects.ForFrameFile(framePath, 15);
+            if (snapshot != null && snapshot.Elements.Count > 0 && !pointNegative)
+            {
+                StillWrongFrameGroundingOutcome outcome = StillWrongFrameGrounding.Run(tex, snapshot, hasBox, x1, y1, x2, y2);
+                _groundNote = outcome.Note;
+                SetMaskOverlay(outcome.Mask, framePath);
+                if (outcome.Candidates.Count > 0)
+                {
+                    _candidates = outcome.Candidates;
+                    _candidateIndex = 0;
+                }
+                StillWrongSamClick.SetReportMask(outcome.Mask);
+                StillWrongSamClick.WriteReport(tex, outcome.AsResult(), outcome.ClickOnly);
+                return;
+            }
             StillWrongSamClick.Attach(request, tex, hasBox, x1, y1, x2, y2, pointNegative);
             bool[,] mask = request.SamMask;
             request.SamMask = null;
@@ -1282,7 +1303,8 @@ namespace StillWrong.Editor.UI
             request.SamMask = mask;
             StillWrongGroundingResult result = mask == null ? without : StillWrongGrounding.ActiveService.Ground(request);
             StillWrongSamClick.WriteReport(tex, result, without);
-            _groundNote = StillWrongSamClick.LastNote;
+            _groundNote = StillWrongSamClick.LastNote + (snapshot == null ? " No object snapshot for this frame, ranked against the live scene." : string.Empty);
+            SetMaskOverlay(mask, framePath);
             if (result != null && result.UsedSamMask && result.Candidates != null)
             {
                 result.Candidates.Sort(CompareCandidateCoverage);
@@ -1468,9 +1490,14 @@ namespace StillWrong.Editor.UI
             {
                 return;
             }
+            Texture2D overlay = MaskOverlayTexture();
             if (_zoom <= 1.001f)
             {
                 GUI.DrawTexture(fit, tex, ScaleMode.ScaleToFit, false);
+                if (overlay != null)
+                {
+                    GUI.DrawTexture(fit, overlay, ScaleMode.StretchToFill, true);
+                }
                 return;
             }
             float uvW = 1f / _zoom;
@@ -1481,6 +1508,50 @@ namespace StillWrong.Editor.UI
             vTop = Mathf.Clamp(vTop, 0f, 1f - uvH);
             Rect coords = new Rect(u, 1f - (vTop + uvH), uvW, uvH);
             GUI.DrawTextureWithTexCoords(fit, tex, coords, false);
+            if (overlay != null)
+            {
+                GUI.DrawTextureWithTexCoords(fit, overlay, coords, true);
+            }
+        }
+        // The SAM mask of the last click, tinted cyan, only while the same frame is shown.
+        private Texture2D MaskOverlayTexture()
+        {
+            string framePath = (_thumbFiles != null && _selectedThumb >= 0 && _selectedThumb < _thumbFiles.Count) ? _thumbFiles[_selectedThumb] : string.Empty;
+            if (_maskOverlay == null || _maskOverlayPath != framePath)
+            {
+                return null;
+            }
+            if (_maskOverlayTex != null)
+            {
+                return _maskOverlayTex;
+            }
+            int h = _maskOverlay.GetLength(0);
+            int w = _maskOverlay.GetLength(1);
+            Color32[] pixels = new Color32[w * h];
+            Color32 on = new Color32(25, 227, 255, 110);
+            Color32 off = new Color32(0, 0, 0, 0);
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    pixels[y * w + x] = _maskOverlay[y, x] ? on : off;
+                }
+            }
+            _maskOverlayTex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            _maskOverlayTex.filterMode = FilterMode.Point;
+            _maskOverlayTex.SetPixels32(pixels);
+            _maskOverlayTex.Apply(false);
+            return _maskOverlayTex;
+        }
+        private void SetMaskOverlay(bool[,] mask, string framePath)
+        {
+            if (_maskOverlayTex != null)
+            {
+                UnityEngine.Object.DestroyImmediate(_maskOverlayTex);
+                _maskOverlayTex = null;
+            }
+            _maskOverlay = mask;
+            _maskOverlayPath = framePath ?? string.Empty;
         }
         private static Rect AspectFit(Rect view, Texture2D tex)
         {

@@ -60,6 +60,7 @@ namespace StillWrong.Recording
         public const double FramesPerSecond = 30.0;
         public const double ChunkSeconds = 10.0;
         public const double RetentionTickSeconds = 5.0;
+        public const int ObjectSnapshotEvery = 5;
         public string SessionId = string.Empty;
         private bool _capturing;
         private bool _frozen;
@@ -324,6 +325,10 @@ namespace StillWrong.Recording
             captureClock.Stop();
             pending.CaptureMs = captureClock.Elapsed.TotalMilliseconds;
             _captureMsTotal += pending.CaptureMs;
+            if (pending.FrameNumber % ObjectSnapshotEvery == 0)
+            {
+                _bytesWritten += FrameObjectsCapture.Write(ChunkDir(pending.ChunkIndex), pending.FrameNumber);
+            }
             StorePresentedFrame(shot, pending);
             Destroy(shot);
         }

@@ -36,7 +36,7 @@ It was built for the Meta Global AI Developer Hackathon (Oct to Nov 2026) and us
 
 1. **Background recorder.** While you play in the Editor, StillWrong keeps a rolling loop of the last few minutes as 10 second chunks. The default is 3 minutes (setting: 1 to 10). Older chunks are deleted as play goes on. A red dot in the docked Still Wrong tab shows it is recording.
 2. **I found a bug.** One click pauses the game and opens the Review window on the recorded frames. You scrub back to the frame that shows the problem.
-3. **Click the object.** StillWrong sends the frame and your click to SAM 3.1, which returns a mask of the object you clicked. The mask and the click are matched against the scene to name the GameObject (for example `OverworldEnemies/RouteWaspPair/SecondWasp`).
+3. **Click the object.** StillWrong sends the frame and your click to SAM 3.1, which returns a mask of the object you clicked. While you play, the recorder also saves which objects were on screen every few frames (`objects.tsv` in each chunk). The mask is matched against the objects saved with that frame, so the pick reflects what you saw, even if the scene has moved on since. The mask is drawn over the frame in cyan so you can see what SAM outlined.
 4. **One sentence.** You say what is wrong or what should change.
 5. **Send.** StillWrong reduces a copy of the scene, writes a fix packet, creates a `stillwrong/<object>` git branch with a worktree next to the project, and copies the reduced scene into it. The agent (Muse by default, set in Tools > Still Wrong > Settings) works only in that copy. Your scene stays as it is.
 6. **Check the copy.** Open the agent's changed copy and look at the result.
@@ -58,12 +58,13 @@ This repository is also a small Unity project you can open directly. `Assets/Fix
 
 ## How the Meta models are used
 
-- **SAM 3.1** (Meta Model API) turns the click on a recorded frame into a pixel mask of that object. The package decodes the returned one-bit mask itself (`Runtime/Meta/MaskCodec.cs`) and uses it to rank candidate GameObjects. In our test on a real game frame, the mask covered exactly the wasp that was clicked.
+- **SAM 3.1** (Meta Model API) turns the click on a recorded frame into a pixel mask of that object. The package decodes the returned one-bit mask itself (`Runtime/Meta/MaskCodec.cs`) and ranks the recorded objects by how well their screen rect matches the mask (intersection over union, `Runtime/Core/MaskRanker.cs`). Objects much larger than the mask, such as ground or full-screen panels, are dropped. Near ties go to the object drawn in front, and a parent wins over a child with the same outline.
+- **Overlapping objects.** When two sprites are drawn over each other, SAM can outline both as one shape. StillWrong spots this when the mask spills outside the best match or also covers most of a smaller object. It then asks SAM again with a negative point on the swallowed object, so the second mask leaves it out, and keeps whichever mask matches better. If the click itself sits on the smaller object, the pick is marked as uncertain so you can switch to it.
 - **Muse Spark** (Meta Model API) writes the check that describes the bug in engine terms, and as the agent it edits the reduced scene copy. In our run it fixed the extra wasp sprite by setting `SecondWasp` `m_IsActive` from 1 to 0 in the copy.
 
 ## Limits
 
-- On recorded frames the object ranking with the SAM mask is currently the same as the ranking without it. The mask is correct, but the ranking does not yet use it to change the order. Work on a mask-and-ID-buffer ranking is in progress.
+- Object matching uses screen rects, not exact pixel outlines, so two objects with nearly the same rect can still need a manual pick. The ranking logic has offline tests (`Packages/com.stillwrong.reducer/Tests~/MaskRankerTests`, run with `dotnet run`), but the live SAM refine pass has not yet been re-run on the demo scene since this change.
 - The recorder is not lightweight yet. On our test scene the Editor update averaged 34.5 ms with recording off and 101.6 ms with it on.
 - The Send step reduces the scene by running trials. On a large scene this can take a long time.
 - A fix made by the agent is a proposal. Check the copy before putting it in your scene.

@@ -34,13 +34,6 @@ namespace StillWrong.Editor.UI
             {
                 int width = frame.width;
                 int height = frame.height;
-                byte[] jpeg = ImageConversion.EncodeToJPG(frame, 90);
-                if (jpeg == null || jpeg.Length == 0)
-                {
-                    LastNote = "SAM skipped: frame encode failed. Using the click.";
-                    return;
-                }
-                string dataUrl = "data:image/jpeg;base64," + Convert.ToBase64String(jpeg);
                 List<SamPoint> points = new List<SamPoint>();
                 SamBox box = null;
                 if (hasBox)
@@ -65,10 +58,59 @@ namespace StillWrong.Editor.UI
                     int py = Mathf.Clamp(Mathf.RoundToInt(y1), 0, Math.Max(0, height - 1));
                     points.Add(new SamPoint(px, py, pointNegative));
                 }
+                string note;
+                request.SamMask = Segment(frame, box, points, out note);
+                request.SamMaskWidth = width;
+                request.SamMaskHeight = height;
+                if (request.SamMask == null)
+                {
+                    LastNote = note;
+                    return;
+                }
+                LastNote = note;
+            }
+            catch (Exception ex)
+            {
+                request.SamMask = null;
+                LastNote = "SAM failed: " + ex.GetType().Name + ". Using the click.";
+            }
+        }
+
+        public static bool HasKey()
+        {
+            return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MODEL_API_KEY"));
+        }
+
+        // One SAM 3.1 call on the frame. Points and box are in frame pixels with the origin at the top left.
+        // Returns the mask in frame pixels with row 0 at the bottom, or null with a note saying why.
+        public static bool[,] Segment(Texture2D frame, SamBox box, List<SamPoint> points, out string note)
+        {
+            note = string.Empty;
+            if (frame == null)
+            {
+                note = "SAM skipped: no frame.";
+                return null;
+            }
+            if (!HasKey())
+            {
+                note = "SAM skipped: no MODEL_API_KEY. Using the click.";
+                return null;
+            }
+            try
+            {
+                int width = frame.width;
+                int height = frame.height;
+                byte[] jpeg = ImageConversion.EncodeToJPG(frame, 90);
+                if (jpeg == null || jpeg.Length == 0)
+                {
+                    note = "SAM skipped: frame encode failed. Using the click.";
+                    return null;
+                }
+                string dataUrl = "data:image/jpeg;base64," + Convert.ToBase64String(jpeg);
                 List<SamFramePrompt> prompts = new List<SamFramePrompt>();
-                prompts.Add(new SamFramePrompt(0, box, points));
+                prompts.Add(new SamFramePrompt(0, box, points ?? new List<SamPoint>()));
                 List<SamPromptObject> objects = new List<SamPromptObject>();
-                objects.Add(new SamPromptObject(1, prompts));
+                objects.Add(new SamPromptObject("1", prompts));
                 string prompt = SamPromptBuilder.BuildObjectPrompt(width, height, objects);
                 SamClient client = new SamClient((HttpClient)null, null, null, null);
                 SamParseResult parsed;
@@ -80,23 +122,26 @@ namespace StillWrong.Editor.UI
                 SamMaskRecord maskRecord = frameRecord == null ? null : frameRecord.Mask;
                 if (maskRecord == null || string.IsNullOrEmpty(maskRecord.Payload))
                 {
-                    LastNote = "SAM returned no mask. Using the click.";
-                    return;
+                    note = "SAM returned no mask. Using the click.";
+                    return null;
                 }
                 int maskW = maskRecord.Width > 0 ? maskRecord.Width : width;
                 int maskH = maskRecord.Height > 0 ? maskRecord.Height : height;
                 byte[] raster = MaskCodec.DecodeMask(maskRecord.Payload, maskW, maskH, maskRecord.Encoding);
-                request.SamMask = PlaceInFrame(raster, maskW, maskH, frameRecord.Box, width, height);
-                request.SamMaskWidth = width;
-                request.SamMaskHeight = height;
-                int pixels = Count(request.SamMask);
-                LastNote = "SAM mask " + maskW.ToString(CultureInfo.InvariantCulture) + "x" + maskH.ToString(CultureInfo.InvariantCulture) + ", " + pixels.ToString(CultureInfo.InvariantCulture) + " pixels.";
+                bool[,] mask = PlaceInFrame(raster, maskW, maskH, frameRecord.Box, width, height);
+                note = "SAM mask " + Count(mask).ToString(CultureInfo.InvariantCulture) + " pixels.";
+                return mask;
             }
             catch (Exception ex)
             {
-                request.SamMask = null;
-                LastNote = "SAM failed: " + ex.GetType().Name + ". Using the click.";
+                note = "SAM failed: " + ex.GetType().Name + ". Using the click.";
+                return null;
             }
+        }
+
+        public static void SetReportMask(bool[,] mask)
+        {
+            LastMask = mask;
         }
 
         public static void WriteReport(Texture2D frame, StillWrongGroundingResult withMask, StillWrongGroundingResult withoutMask)
