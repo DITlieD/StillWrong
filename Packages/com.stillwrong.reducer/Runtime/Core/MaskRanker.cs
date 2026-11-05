@@ -270,8 +270,9 @@ namespace StillWrong.Core
             return union > 0.0 ? inter / union : 0.0;
         }
 
-        // A second mask only replaces the first when it names the same object at least as well,
-        // or names a different object much better. A refine pass that cuts the object down to one part loses.
+        // A second mask replaces the first when it names the same object and either fits it at least as well,
+        // or stays inside it much better (the merge was removed) without shrinking to one part of it.
+        // Naming a different object needs a clearly better fit.
         public static bool RefineIsBetter(List<MaskRank> first, List<MaskRank> refined)
         {
             if (refined == null || refined.Count == 0)
@@ -282,11 +283,39 @@ namespace StillWrong.Core
             {
                 return true;
             }
-            if (refined[0].Element == first[0].Element || refined[0].Element.Path == first[0].Element.Path)
+            MaskRank a = first[0];
+            MaskRank b = refined[0];
+            bool same = b.Element == a.Element || b.Element.Path == a.Element.Path;
+            if (!same)
             {
-                return refined[0].Iou >= first[0].Iou;
+                return b.Iou >= a.Iou + 0.15;
             }
-            return refined[0].Iou >= first[0].Iou + 0.15;
+            if (b.Iou >= a.Iou)
+            {
+                return true;
+            }
+            return b.MaskShare >= a.MaskShare + 0.1 && b.Fill >= a.Fill * 0.6;
+        }
+
+        // Box around the top object, padded a little, in frame pixels with the origin at the top left.
+        // Sent with the refine pass so SAM keeps to that object.
+        public static void RefineBox(MaskRank top, int frameWidth, int frameHeight, out int left, out int topEdge, out int right, out int bottom)
+        {
+            Rect2D r = top.Element.Rect;
+            float padX = r.Width * 0.04f + 2f;
+            float padY = r.Height * 0.04f + 2f;
+            left = Math.Max(0, (int)Math.Floor(r.XMin - padX));
+            right = Math.Min(frameWidth, (int)Math.Ceiling(r.XMax + padX));
+            topEdge = Math.Max(0, (int)Math.Floor(frameHeight - r.YMax - padY));
+            bottom = Math.Min(frameHeight, (int)Math.Ceiling(frameHeight - r.YMin + padY));
+            if (right <= left)
+            {
+                right = Math.Min(frameWidth, left + 1);
+            }
+            if (bottom <= topEdge)
+            {
+                bottom = Math.Min(frameHeight, topEdge + 1);
+            }
         }
 
         // True when SAM likely merged the top object with something else: the mask spills out of the

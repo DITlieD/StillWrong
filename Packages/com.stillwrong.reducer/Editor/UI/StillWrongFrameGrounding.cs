@@ -80,8 +80,18 @@ namespace StillWrong.Editor.UI
                     {
                         refinePoints.Add(new SamPoint(Clamp(negatives[i].X, width), Clamp(height - negatives[i].Y, height), true));
                     }
+                    SamBox refineBox = box;
+                    if (refineBox == null)
+                    {
+                        int left;
+                        int topEdge;
+                        int right;
+                        int bottom;
+                        MaskRanker.RefineBox(ranks[0], width, height, out left, out topEdge, out right, out bottom);
+                        refineBox = new SamBox(left, topEdge, right, bottom);
+                    }
                     string refinedNote;
-                    bool[,] refined = StillWrongSamClick.Segment(frame, box, refinePoints, out refinedNote);
+                    bool[,] refined = StillWrongSamClick.Segment(frame, refineBox, refinePoints, out refinedNote);
                     List<MaskRank> refinedRanks = refined == null ? null : MaskRanker.Rank(refined, elements, click, true);
                     if (MaskRanker.RefineIsBetter(ranks, refinedRanks))
                     {

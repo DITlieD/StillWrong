@@ -77,6 +77,21 @@ static class P
         var rFirst = MaskRanker.Rank(firstPass, real, new Vec2(608, 818), true);
         Check(rFirst.Count > 0 && rFirst[0].Element == wide, "first pass on the real frame names the big wasp");
         Check(!MaskRanker.RefineIsBetter(rFirst, rHead), "refine that cuts the object to one part is rejected");
+        // Live SAM results: box + click + negative gave 9,133 px all inside the big wasp; click only gave 14,659 px
+        // with 3,232 px outside it. The clean one must win even though its rect overlap is a little lower.
+        // Sizes match the live run: 11,480 px inside the big wasp plus 3,200 px over the small wasp outside it.
+        bool[,] liveMerged = Mask(FW, FH, new Rect2D(540, 730, 140, 82), new Rect2D(470, 745, 50, 64));
+        var rLive = MaskRanker.Rank(liveMerged, real, new Vec2(608, 770), true);
+        Check(rLive.Count > 0 && rLive[0].Element == wide && MaskRanker.NeedsRefine(rLive), "live-sized merged mask names the big wasp and asks for a refine");
+        bool[,] boxed = Mask(FW, FH, new Rect2D(545, 735, 130, 70));
+        var rBoxed = MaskRanker.Rank(boxed, real, new Vec2(608, 770), true);
+        Check(rBoxed.Count > 0 && rBoxed[0].Element == wide && rBoxed[0].MaskShare > 0.99, "boxed refine stays inside the big wasp");
+        Check(MaskRanker.RefineIsBetter(rLive, rBoxed), "refine that removes the merge without shrinking the object is kept");
+        bool[,] liveHead = Mask(FW, FH, new Rect2D(562, 734, 58, 77));
+        Check(!MaskRanker.RefineIsBetter(rLive, MaskRanker.Rank(liveHead, real, new Vec2(608, 770), true)), "live-sized head-only refine is still rejected");
+        int bl, bt, br, bb;
+        MaskRanker.RefineBox(rFirst[0], FW, FH, out bl, out bt, out br, out bb);
+        Check(bl < 520 && br > 702 && bt < 1080 - 875 && bb > 1080 - 708, "refine box covers the big wasp in top-left frame pixels (" + bl + "," + bt + "," + br + "," + bb + ")");
         var rTight = MaskRanker.Rank(Mask(FW, FH, new Rect2D(522, 710, 178, 163)), real, new Vec2(608, 818), true);
         Check(MaskRanker.RefineIsBetter(rFirst, rTight), "refine that fits the object better is kept");
 
