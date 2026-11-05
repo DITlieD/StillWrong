@@ -11,6 +11,7 @@ namespace StillWrong.Editor.UI
         public const string PreferredAgentKey = "StillWrong.PreferredAgent";
         public const string BranchPrefixKey = "StillWrong.BranchPrefix";
         public const string AgentCommandKey = "StillWrong.AgentCommand";
+        public const string HiddenOverlaysKey = "StillWrong.HiddenOverlays";
         public const string FreezeShortcutId = "StillWrong/Freeze Capture";
         public const string PointShortcutId = "StillWrong/Arm Point Click";
         public static int RetentionMinutes()
@@ -68,6 +69,18 @@ namespace StillWrong.Editor.UI
                 return string.Empty;
             }
         }
+        // Comma-separated GameObject names hidden while the review is open, for HUD pieces that cover the game view.
+        public static string HiddenOverlays()
+        {
+            try
+            {
+                return EditorPrefs.GetString(HiddenOverlaysKey, string.Empty);
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
         [MenuItem("Tools/Still Wrong/Settings")]
         public static void ShowWindow()
         {
@@ -115,6 +128,14 @@ namespace StillWrong.Editor.UI
             try
             {
                 EditorPrefs.SetString(BranchPrefixKey, prefix);
+            }
+            catch
+            {
+            }
+            string hidden = EditorGUILayout.TextField("Hide while reviewing", HiddenOverlays());
+            try
+            {
+                EditorPrefs.SetString(HiddenOverlaysKey, hidden);
             }
             catch
             {
