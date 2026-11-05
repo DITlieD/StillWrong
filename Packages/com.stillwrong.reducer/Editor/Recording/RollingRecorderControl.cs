@@ -328,6 +328,8 @@ namespace StillWrong.Editor.Recording
             string specNote = specMiss ? "spec did not converge; user mark is the bug" : (probeMiss ? "probe " + verdict + "; user mark is the bug" : (authored.UsedDemoDefault ? "spec StillWrong via no-key demo default" : "spec StillWrong via frozen authoring attempts=" + authored.Attempts));
             WriteDispatchProgress(progressFile, specNote);
             string scenePath = string.Empty;
+            string mapNote;
+            candidatePath = MapToScenePath(candidatePath, ref candidatePaths, out mapNote);
             string sceneFailure = FindSourceScene(candidatePath, out scenePath);
             if (!string.IsNullOrEmpty(sceneFailure))
             {
@@ -455,6 +457,8 @@ namespace StillWrong.Editor.Recording
             StillWrong.Core.Oracle.OracleResult live = authored.LiveResult;
             string verdict = live != null ? live.Verdict.ToString() : "Inconclusive";
             string scenePath = string.Empty;
+            string mapNote;
+            candidatePath = MapToScenePath(candidatePath, ref candidatePaths, out mapNote);
             string sceneFailure = FindSourceScene(candidatePath, out scenePath);
             if (!string.IsNullOrEmpty(sceneFailure))
             {
@@ -514,6 +518,8 @@ namespace StillWrong.Editor.Recording
             StillWrong.Core.Oracle.OracleResult live = authored.LiveResult;
             string verdict = live != null ? live.Verdict.ToString() : "Inconclusive";
             string scenePath = string.Empty;
+            string mapNote;
+            candidatePath = MapToScenePath(candidatePath, ref candidatePaths, out mapNote);
             string sceneFailure = FindSourceScene(candidatePath, out scenePath);
             if (!string.IsNullOrEmpty(sceneFailure))
             {
@@ -693,6 +699,39 @@ namespace StillWrong.Editor.Recording
                 }
             }
             return string.Empty;
+        }
+        // Objects spawned in Play Mode (a body a component builds at runtime) are gone once the
+        // Editor leaves Play Mode, so the saved scene has no such path. Use the nearest ancestor
+        // that exists in the scene as the target and keep the runtime path as a candidate.
+        public static string MapToScenePath(string candidatePath, ref List<string> candidatePaths, out string note)
+        {
+            note = string.Empty;
+            if (string.IsNullOrEmpty(candidatePath) || StillWrong.Oracle.UnitySymptomOracleRunner.FindGameObjectByPath(candidatePath) != null)
+            {
+                return candidatePath;
+            }
+            string path = candidatePath;
+            while (true)
+            {
+                int slash = path.LastIndexOf('/');
+                if (slash <= 0)
+                {
+                    return candidatePath;
+                }
+                path = path.Substring(0, slash);
+                if (StillWrong.Oracle.UnitySymptomOracleRunner.FindGameObjectByPath(path) != null)
+                {
+                    break;
+                }
+            }
+            List<string> paths = candidatePaths != null ? new List<string>(candidatePaths) : new List<string>();
+            if (!paths.Contains(candidatePath))
+            {
+                paths.Insert(0, candidatePath);
+            }
+            candidatePaths = paths;
+            note = candidatePath + " is spawned at runtime; using " + path + " from the saved scene";
+            return path;
         }
         private static string FindSourceScene(string candidatePath, out string scenePath)
         {
