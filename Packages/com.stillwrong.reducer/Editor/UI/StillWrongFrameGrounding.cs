@@ -113,7 +113,7 @@ namespace StillWrong.Editor.UI
             {
                 outcome.Candidates = outcome.ClickOnly.Candidates;
             }
-            string top = ranks.Count > 0 ? " Best match " + LeafName(ranks[0].Element.Path) + " at " + (ranks[0].Iou * 100.0).ToString("F0", CultureInfo.InvariantCulture) + "% overlap." : " No recorded object matches the mask.";
+            string top = ranks.Count > 0 ? " Best match " + LeafName(ranks[0].Element.Path) + ", " + (ranks[0].MaskShare * 100.0).ToString("F0", CultureInfo.InvariantCulture) + "% of the outline is inside it." : " No recorded object matches the mask.";
             outcome.Note = note + refineNote + top + (outcome.Ambiguous ? " Another object is close, check the pick." : string.Empty);
             return outcome;
         }
