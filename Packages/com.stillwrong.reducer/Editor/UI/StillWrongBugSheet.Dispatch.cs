@@ -16,10 +16,44 @@ namespace StillWrong.Editor.UI
         // One Send at a time. A second click while one runs would reduce the reduced copy.
         [NonSerialized]
         private bool _dispatchBusy;
+        // Reduction edits scenes, so a Send pressed in Play Mode leaves Play Mode first and then sends.
+        [SerializeField]
+        private bool _sendAfterPlay;
+        [InitializeOnLoadMethod]
+        private static void HookSendAfterPlay()
+        {
+            EditorApplication.playModeStateChanged -= SendAfterPlay;
+            EditorApplication.playModeStateChanged += SendAfterPlay;
+        }
+        private static void SendAfterPlay(PlayModeStateChange change)
+        {
+            if (change != PlayModeStateChange.EnteredEditMode)
+            {
+                return;
+            }
+            StillWrongBugSheet[] sheets = Resources.FindObjectsOfTypeAll<StillWrongBugSheet>();
+            for (int i = 0; i < sheets.Length; i++)
+            {
+                StillWrongBugSheet sheet = sheets[i];
+                if (sheet != null && sheet._sendAfterPlay)
+                {
+                    sheet._sendAfterPlay = false;
+                    EditorApplication.delayCall += sheet.DispatchBugNow;
+                }
+            }
+        }
         private void DispatchBugNow()
         {
             if (_dispatchBusy)
             {
+                return;
+            }
+            if (EditorApplication.isPlaying)
+            {
+                _sendAfterPlay = true;
+                _progressLine = "Leaving Play Mode, then sending.";
+                Repaint();
+                EditorApplication.isPlaying = false;
                 return;
             }
             _dispatchBusy = true;

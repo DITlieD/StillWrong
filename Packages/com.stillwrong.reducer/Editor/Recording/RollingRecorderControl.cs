@@ -102,11 +102,6 @@ namespace StillWrong.Editor.Recording
                 {
                     return;
                 }
-                GameObject existing = GameObject.Find("StillWrong_RollingRecorder");
-                if (existing != null)
-                {
-                    return;
-                }
                 StartRollingRecorder();
                 StillWrongBugSheet.EnsureChip();
             }
@@ -225,14 +220,37 @@ namespace StillWrong.Editor.Recording
                 return 0;
             }
         }
+        // True when a recorder is capturing. Recorders that stopped capturing (left over from
+        // Edit Mode or a scene reload) are removed so a new one can start.
+        private static bool FindLiveRecorder()
+        {
+            RollingCaptureRecorder[] recorders = UnityEngine.Object.FindObjectsByType<RollingCaptureRecorder>(FindObjectsInactive.Include);
+            bool live = false;
+            for (int i = 0; i < recorders.Length; i++)
+            {
+                RollingCaptureRecorder r = recorders[i];
+                if (r == null)
+                {
+                    continue;
+                }
+                if (r.IsCapturing() && !live)
+                {
+                    live = true;
+                    continue;
+                }
+                UnityEngine.Object.DestroyImmediate(r.gameObject);
+            }
+            return live;
+        }
         public static void StartRollingRecorder()
         {
-            GameObject existing = GameObject.Find("StillWrong_RollingRecorder");
-            if (existing != null)
+            if (FindLiveRecorder())
             {
                 return;
             }
             GameObject host = new GameObject("StillWrong_RollingRecorder");
+            // Never saved into the scene; a copy rebuilt by a scene reload would sit there without capturing.
+            host.hideFlags = HideFlags.DontSave;
             RollingCaptureRecorder recorder = host.AddComponent<RollingCaptureRecorder>();
             recorder.Begin(null, StillWrongSettings.RetentionMinutes() * 60.0, StillWrongSettings.TimelineFps());
         }
