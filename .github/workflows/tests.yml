@@ -1,0 +1,20 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Mask ranking tests
+        working-directory: Packages/com.stillwrong.reducer/Tests~/MaskRankerTests
+        run: dotnet run
+      - name: Reduction simulation tests
+        working-directory: Packages/com.stillwrong.reducer/Tests~/ReductionSimTests
+        run: dotnet run

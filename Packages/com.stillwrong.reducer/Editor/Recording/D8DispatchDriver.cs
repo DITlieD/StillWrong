@@ -200,7 +200,7 @@ namespace StillWrong.Editor.Recording
             {
                 return;
             }
-            RollingCaptureRecorder recorder = UnityEngine.Object.FindFirstObjectByType<RollingCaptureRecorder>();
+            RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
             if (recorder == null)
             {
                 GameObject host = new GameObject("StillWrong_D8DispatchRecorder");
@@ -235,7 +235,7 @@ namespace StillWrong.Editor.Recording
             {
                 return;
             }
-            RollingCaptureRecorder recorder = UnityEngine.Object.FindFirstObjectByType<RollingCaptureRecorder>();
+            RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
             if (recorder == null || !recorder.IsCapturing())
             {
                 Fail(state, "record-lost-recorder");

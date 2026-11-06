@@ -44,7 +44,6 @@ namespace StillWrong.Meta
         private readonly SamClientOptions options;
         private readonly CostLog costLog;
         private readonly MetaRetryPolicy retryPolicy;
-        private readonly bool ownsClient;
 
         public SamClient(HttpMessageHandler handler, SamClientOptions clientOptions, CostLog log, MetaRetryPolicy policy)
         {
@@ -70,7 +69,6 @@ namespace StillWrong.Meta
             {
                 httpClient = new HttpClient();
             }
-            ownsClient = false;
         }
 
         public SamClient(HttpClient client, SamClientOptions clientOptions, CostLog log, MetaRetryPolicy policy)
@@ -83,12 +81,10 @@ namespace StillWrong.Meta
             if (client == null)
             {
                 httpClient = new HttpClient();
-                ownsClient = true;
             }
             else
             {
                 httpClient = client;
-                ownsClient = false;
             }
             costLog = log;
             if (policy != null)

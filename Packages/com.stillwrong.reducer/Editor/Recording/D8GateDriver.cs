@@ -280,7 +280,7 @@ namespace StillWrong.Editor.Recording
                 Fail(state, "retention-timeout");
                 return;
             }
-            RollingCaptureRecorder recorder = UnityEngine.Object.FindFirstObjectByType<RollingCaptureRecorder>();
+            RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
             if (recorder == null)
             {
                 GameObject host = new GameObject("StillWrong_D8GateRecorder");

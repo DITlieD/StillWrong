@@ -51,7 +51,7 @@ namespace StillWrong.Recording
         // and build hierarchy paths only for objects that land on screen.
         private static void CollectOnScreen(FrameObjectsSnapshot snapshot, Camera camera, int screenW, int screenH)
         {
-            Graphic[] graphics = UnityEngine.Object.FindObjectsByType<Graphic>(FindObjectsSortMode.None);
+            Graphic[] graphics = UnityEngine.Object.FindObjectsByType<Graphic>();
             for (int i = 0; i < graphics.Length && snapshot.Elements.Count < MaxObjects; i++)
             {
                 Graphic g = graphics[i];
@@ -82,7 +82,7 @@ namespace StillWrong.Recording
             if (camera == null) return;
             Vector3 camPos = camera.transform.position;
             Vector3 camFwd = camera.transform.forward;
-            Renderer[] renderers = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+            Renderer[] renderers = UnityEngine.Object.FindObjectsByType<Renderer>();
             for (int i = 0; i < renderers.Length && snapshot.Elements.Count < MaxObjects; i++)
             {
                 Renderer rend = renderers[i];

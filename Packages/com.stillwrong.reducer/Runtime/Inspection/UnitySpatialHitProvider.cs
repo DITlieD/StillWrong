@@ -140,7 +140,7 @@ namespace StillWrong.Inspection
 
         public static void CollectUgUiElements(List<SpatialHitElement> list, Camera camera)
         {
-            Graphic[] graphics = UnityEngine.Object.FindObjectsByType<Graphic>(FindObjectsSortMode.None);
+            Graphic[] graphics = UnityEngine.Object.FindObjectsByType<Graphic>();
             if (graphics == null) return;
 
             Vector3[] worldCorners = new Vector3[4];
@@ -237,7 +237,7 @@ namespace StillWrong.Inspection
         {
             if (camera == null) return;
 
-            Renderer[] renderers = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+            Renderer[] renderers = UnityEngine.Object.FindObjectsByType<Renderer>();
             if (renderers == null) return;
 
             for (int i = 0; i < renderers.Length; i++)

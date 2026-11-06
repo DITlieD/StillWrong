@@ -352,7 +352,7 @@ namespace StillWrong.Editor.Recording
             result.BuilderCandidateCount = state.BuilderCandidateCount;
             try
             {
-                GameObject[] all = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+                GameObject[] all = UnityEngine.Object.FindObjectsByType<GameObject>();
                 result.ObjectCount = all != null ? all.Length : 0;
             }
             catch

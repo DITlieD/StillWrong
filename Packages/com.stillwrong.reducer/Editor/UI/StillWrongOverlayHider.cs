@@ -28,7 +28,7 @@ namespace StillWrong.Editor.UI
             {
                 return;
             }
-            Transform[] all = UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
+            Transform[] all = UnityEngine.Object.FindObjectsByType<Transform>();
             for (int i = 0; i < all.Length; i++)
             {
                 GameObject go = all[i] != null ? all[i].gameObject : null;

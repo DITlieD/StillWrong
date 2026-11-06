@@ -197,7 +197,7 @@ namespace StillWrong.Editor.Recording
             {
                 return;
             }
-            UnityTemporalRingBuffer existing = UnityEngine.Object.FindFirstObjectByType<UnityTemporalRingBuffer>();
+            UnityTemporalRingBuffer existing = UnityEngine.Object.FindAnyObjectByType<UnityTemporalRingBuffer>();
             if (existing != null)
             {
                 UnityEngine.Object.Destroy(existing.gameObject);
@@ -236,7 +236,7 @@ namespace StillWrong.Editor.Recording
             }
             if (idx >= state.RecordTarget)
             {
-                UnityTemporalRingBuffer recorder = UnityEngine.Object.FindFirstObjectByType<UnityTemporalRingBuffer>();
+                UnityTemporalRingBuffer recorder = UnityEngine.Object.FindAnyObjectByType<UnityTemporalRingBuffer>();
                 if (recorder == null)
                 {
                     Fail("record-recorder-missing");
@@ -260,7 +260,7 @@ namespace StillWrong.Editor.Recording
                 Fail("freeze-timeout");
                 return;
             }
-        UnityTemporalRingBuffer recorder = UnityEngine.Object.FindFirstObjectByType<UnityTemporalRingBuffer>();
+        UnityTemporalRingBuffer recorder = UnityEngine.Object.FindAnyObjectByType<UnityTemporalRingBuffer>();
             if (recorder == null)
             {
                 Fail("freeze-recorder-missing");

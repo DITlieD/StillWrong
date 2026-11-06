@@ -69,7 +69,7 @@ namespace StillWrong.Oracle
                 }
             }
 
-            var all = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+            var all = UnityEngine.Object.FindObjectsByType<GameObject>();
             for (int i = 0; i < all.Length; i++)
             {
                 string p = GetHierarchyPath(all[i]);

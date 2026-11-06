@@ -43,7 +43,7 @@ namespace StillWrong.Editor
                 return;
             }
             _nextSizePass = now + 0.25;
-            RollingCaptureRecorder recorder = UnityEngine.Object.FindFirstObjectByType<RollingCaptureRecorder>();
+            RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
             if (recorder != null)
             {
                 recorder.EditorPump();

@@ -118,7 +118,7 @@ namespace StillWrong.Editor.Recording
         {
             try
             {
-                RollingCaptureRecorder recorder = UnityEngine.Object.FindFirstObjectByType<RollingCaptureRecorder>();
+                RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
                 if (recorder == null)
                 {
                     StillWrongBugSheet.OpenWithSession(LastSessionDir(), null, null, string.Empty, string.Empty, "freeze", Screen.width, Screen.height);
@@ -146,7 +146,7 @@ namespace StillWrong.Editor.Recording
         {
             try
             {
-                RollingCaptureRecorder recorder = UnityEngine.Object.FindFirstObjectByType<RollingCaptureRecorder>();
+                RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
                 if (recorder == null)
                 {
                     if (!EditorApplication.isPlaying)
@@ -187,7 +187,7 @@ namespace StillWrong.Editor.Recording
                 {
                     return IsEnabled();
                 }
-                RollingCaptureRecorder recorder = UnityEngine.Object.FindFirstObjectByType<RollingCaptureRecorder>();
+                RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
                 if (recorder == null)
                 {
                     return false;
@@ -258,7 +258,7 @@ namespace StillWrong.Editor.Recording
         {
             try
             {
-                RollingCaptureRecorder recorder = UnityEngine.Object.FindFirstObjectByType<RollingCaptureRecorder>();
+                RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
                 if (recorder != null && recorder.IsFrozen())
                 {
                     recorder.UnfreezeCapture();

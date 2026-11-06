@@ -202,8 +202,8 @@ namespace StillWrong.Editor.Export
             }
 
             Scene openedScene = EditorSceneManager.OpenScene(reducedScenePath, OpenSceneMode.Single);
-            var sceneObjects = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
-            var sceneComponents = UnityEngine.Object.FindObjectsByType<Component>(FindObjectsSortMode.None);
+            var sceneObjects = UnityEngine.Object.FindObjectsByType<GameObject>();
+            var sceneComponents = UnityEngine.Object.FindObjectsByType<Component>();
             int auditCount = reductionResult != null && reductionResult.AuditLog != null ? reductionResult.AuditLog.Count : 0;
             List<InputEventRecordDto> earlyInputs = BuildReplayInputs(sessionDir);
             int earlySessionCount = string.IsNullOrEmpty(sessionDir) ? -1 : earlyInputs.Count;

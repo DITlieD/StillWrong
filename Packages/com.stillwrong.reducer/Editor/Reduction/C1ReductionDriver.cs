@@ -369,7 +369,7 @@ namespace StillWrong.Editor.Reduction
             int destroyed = 0;
             try
             {
-                GameObject[] all = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+                GameObject[] all = UnityEngine.Object.FindObjectsByType<GameObject>();
                 List<GameObject> targets = new List<GameObject>();
                 for (int i = 0; i < all.Length; i++)
                 {

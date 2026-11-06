@@ -23,7 +23,6 @@ namespace StillWrong.Editor.UI
         private Texture2D _maskOverlayTex;
         private string _maskOverlayPath = string.Empty;
         private float _scrub;
-        private int _selectedFrame = 2;
         private Vector2 _scrollPos;
         private float _frameCap;
         private Vector2 _reviewScroll;
