@@ -4,6 +4,8 @@
 
 <p align="center">Unity Editor package &nbsp;·&nbsp; SAM 3.1 + Muse Spark &nbsp;·&nbsp; Meta Model API &nbsp;·&nbsp; MIT</p>
 
+<p align="center"><a href="https://github.com/DITlieD/StillWrong/actions/workflows/tests.yml"><img src="https://github.com/DITlieD/StillWrong/actions/workflows/tests.yml/badge.svg" alt="tests"></a></p>
+
 ## Demo video
 
 <p align="center"><a href="https://youtu.be/UY9kle7WmNs"><img src="https://img.youtube.com/vi/UY9kle7WmNs/maxresdefault.jpg" alt="Watch the StillWrong demo on YouTube" width="100%"></a></p>
@@ -48,11 +50,14 @@ It was built for the Meta Global AI Developer Hackathon (Oct to Nov 2026) and us
 
 ## Install
 
-Requirements: Unity 6 (developed on 6000.5.5f1), git on PATH, the project inside a git repository, and a Meta Model API key.
+Requirements: Unity 6 (developed on 6000.5.5f1) and a Meta Model API key.
+
+git is optional. With a git repository, Send creates a `stillwrong/<object>` branch and a worktree for the agent. Without one, Send still writes the fix packet and the reduced scene, but no branch.
 
 1. Copy `Packages/com.stillwrong.reducer` into your project's `Packages/` folder, or add it in Package Manager with *Add package from disk* and pick its `package.json`.
 2. Set `MODEL_API_KEY` in the environment that starts Unity. On Linux and macOS the Editor also reads `~/.config/muse/meta-api-key` if the variable is not set.
 3. Open **Tools > Still Wrong**, dock the tab, enter Play Mode and play.
+4. In **Tools > Still Wrong > Settings**, set **Worktree folder** if you don't want the agent's copies next to your project. If your game draws HUD buttons over the play area, list their names in **Hide while reviewing**, for example `OpenTavernButton, ObjectiveBadgeIcon`.
 
 This repository is also a small Unity project you can open directly. `Assets/Fixtures` holds the test scenes (UI clip, sorting occlusion, a transient disappearance, a held-out billboard case, and a busy demo scene with a planted bug).
 
@@ -62,13 +67,17 @@ This repository is also a small Unity project you can open directly. `Assets/Fix
 - **Overlapping objects.** When two sprites are drawn over each other, SAM can outline both as one shape. StillWrong spots this when the mask spills outside the best match or also covers most of a smaller object. It then asks SAM again with a negative point on the swallowed object, so the second mask leaves it out, and keeps whichever mask matches better. If the click itself sits on the smaller object, the pick is marked as uncertain so you can switch to it.
 - **Muse Spark** (Meta Model API) writes the check that describes the bug in engine terms, and as the agent it edits the reduced scene copy. In our run it fixed the extra wasp sprite by setting `SecondWasp` `m_IsActive` from 1 to 0 in the copy.
 
-## Limits
+## Measured
 
-- Objects that a component builds in Play Mode, like the wasp's body, do not exist in the saved scene. Send uses the nearest parent that does exist, here `OverworldEnemies/RouteWasp`, and keeps the clicked path in the packet. Pressing Send in Play Mode leaves Play Mode first.
-- Object matching uses screen rects, not exact pixel outlines, so two objects with nearly the same rect can still need a manual pick. The ranking logic has offline tests (`Packages/com.stillwrong.reducer/Tests~/MaskRankerTests`, run with `dotnet run`).
 - **Live SAM 3.1 check on a recorded frame of the demo bug.** Clicking the oversized wasp returned a 14,659 px mask that also took in the small swarm wasp beside it, with 3,232 px outside the big wasp. StillWrong named the big wasp, flagged the merge and asked SAM again with a box around the big wasp and a negative point on the small one. The second mask was 9,112 px and sat entirely inside the big wasp, so it replaced the first. A second prompt with the negative point but no box cut the mask down to the wasp's head; that kind of result is rejected. Clicking the small wasp returned a 908 px mask and named the small wasp. Object rects in this check were measured by hand from the frame, not taken from a live recording.
 - The recorder used to encode each frame to JPEG on the main thread. On our test scene the Editor update averaged 34.5 ms with recording off and 101.6 ms with it on. Encoding and disk writes now run on two background threads, and the Game view grab reuses one texture. In a 1080p benchmark in Unity 6000.5.5f1, main-thread cost per frame fell from 36.0 ms to 0.64 ms (6.4 ms worst case), with all 60 frames written and none dropped. The full Play Mode budget run has not been repeated since this change. The per-frame object snapshot used for mask matching now only reads visible objects, which took it from 42 ms to 4.3 ms on the Overworld scene.
 - The Send step reduces the scene by running trials, and each trial reloads the scene copy, which takes a second or two on a large scene. It now tries whole branches from the scene root first and skips branches already removed with a parent. In an offline simulation of a 4,579-object scene where the bug needs only the target, this cut the trial count from 933 to 33 (`Packages/com.stillwrong.reducer/Tests~/ReductionSimTests`). In Unity 6000.5.5f1, the same shape of scene built from real GameObjects (4,578 objects, bug needing the target and one light) reduced to 6 objects in 39 trials and 5.7 seconds, with the bug still present. Those objects are mostly empty, so each trial took 0.15 s; on the real Overworld scene a trial took about 1.7 s, which puts 39 trials near a minute. On the real Overworld scene (4,511 objects), a Send on the wasp kept 3 objects and removed 4,508 in about 50 seconds. Before this change the same scene took about 36 minutes.
+
+## Limits
+
+- Objects that a component builds in Play Mode, like the wasp's body, do not exist in the saved scene. Send uses the nearest parent that does exist, here `OverworldEnemies/RouteWasp`, and keeps the clicked path in the packet. Pressing Send in Play Mode leaves Play Mode first.
+- Object matching uses screen rects, not exact pixel outlines, so two objects with nearly the same rect can still need a manual pick.
+- The mask ranking and reduction logic have offline tests that run on every push (`Packages/com.stillwrong.reducer/Tests~`).
 - A fix made by the agent is a proposal. Check the copy before putting it in your scene.
 - Tested on Linux only.
 
