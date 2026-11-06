@@ -812,6 +812,10 @@ namespace StillWrong.Editor.UI
             {
                 return;
             }
+            // Keep the frame being reviewed. New frames arriving must not move the selection,
+            // or a click lands on a different picture than the one on screen.
+            string keepFile = (_thumbFiles != null && _selectedThumb >= 0 && _selectedThumb < _thumbFiles.Count) ? _thumbFiles[_selectedThumb] : string.Empty;
+            bool sameSession = string.Equals(_sessionDir, dir, StringComparison.Ordinal);
             _sessionDir = dir;
             if (_thumbTextures != null)
             {
@@ -843,6 +847,15 @@ namespace StillWrong.Editor.UI
             }
             _fullFramePath = string.Empty;
             LoadSessionThumbs(null, null);
+            if (sameSession && !string.IsNullOrEmpty(keepFile))
+            {
+                int kept = _thumbFiles.IndexOf(keepFile);
+                if (kept >= 0)
+                {
+                    _selectedThumb = kept;
+                    _scrub = kept;
+                }
+            }
             _thumbBatchQueued = false;
             LoadThumbBatch();
             _seenCaptured = RollingRecorderControl.CapturedFrameCount();

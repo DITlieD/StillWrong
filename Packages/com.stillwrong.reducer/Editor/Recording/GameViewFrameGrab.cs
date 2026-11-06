@@ -43,7 +43,7 @@ namespace StillWrong.Editor
                 return;
             }
             _nextSizePass = now + 0.25;
-            RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
+            RollingCaptureRecorder recorder = StillWrong.Editor.Recording.RollingRecorderControl.LiveRecorder();
             if (recorder != null)
             {
                 recorder.EditorPump();

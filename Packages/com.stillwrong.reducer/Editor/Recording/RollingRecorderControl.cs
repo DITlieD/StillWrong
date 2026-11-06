@@ -118,7 +118,7 @@ namespace StillWrong.Editor.Recording
         {
             try
             {
-                RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
+                RollingCaptureRecorder recorder = LiveRecorder();
                 if (recorder == null)
                 {
                     StillWrongBugSheet.OpenWithSession(LastSessionDir(), null, null, string.Empty, string.Empty, "freeze", Screen.width, Screen.height);
@@ -146,7 +146,7 @@ namespace StillWrong.Editor.Recording
         {
             try
             {
-                RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
+                RollingCaptureRecorder recorder = LiveRecorder();
                 if (recorder == null)
                 {
                     if (!EditorApplication.isPlaying)
@@ -187,7 +187,7 @@ namespace StillWrong.Editor.Recording
                 {
                     return IsEnabled();
                 }
-                RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
+                RollingCaptureRecorder recorder = LiveRecorder();
                 if (recorder == null)
                 {
                     return false;
@@ -219,6 +219,29 @@ namespace StillWrong.Editor.Recording
             {
                 return 0;
             }
+        }
+        // The recorder that is capturing, or any recorder when none is. An idle leftover must not
+        // win over the live one, or freezing stops the wrong recorder and new frames keep arriving.
+        public static RollingCaptureRecorder LiveRecorder()
+        {
+            RollingCaptureRecorder[] recorders = UnityEngine.Object.FindObjectsByType<RollingCaptureRecorder>(FindObjectsInactive.Exclude);
+            RollingCaptureRecorder fallback = null;
+            for (int i = 0; i < recorders.Length; i++)
+            {
+                if (recorders[i] == null)
+                {
+                    continue;
+                }
+                if (recorders[i].IsCapturing())
+                {
+                    return recorders[i];
+                }
+                if (fallback == null)
+                {
+                    fallback = recorders[i];
+                }
+            }
+            return fallback;
         }
         // True when a recorder is capturing. Recorders that stopped capturing (left over from
         // Edit Mode or a scene reload) are removed so a new one can start.
@@ -258,7 +281,7 @@ namespace StillWrong.Editor.Recording
         {
             try
             {
-                RollingCaptureRecorder recorder = UnityEngine.Object.FindAnyObjectByType<RollingCaptureRecorder>();
+                RollingCaptureRecorder recorder = LiveRecorder();
                 if (recorder != null && recorder.IsFrozen())
                 {
                     recorder.UnfreezeCapture();
